@@ -39,6 +39,7 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 ## Test plan
 
 Record the commands you run and what each failure means.
+Run these commands from the repository root.
 
 - Data-tier command: `npm run test:data --prefix octofit-tracker/backend`
 - API command: `npm run test:api --prefix octofit-tracker/backend`
