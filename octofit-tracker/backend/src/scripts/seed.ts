@@ -2,17 +2,22 @@ import { connectDatabase, disconnectDatabase } from '../config/database.js';
 import { Activity, Team, User, Workout } from '../models/index.js';
 
 // Seed stable demo records without clearing data owned by the application.
-async function upsertDemoUser(name: string, email: string, teamId: InstanceType<typeof Team>['_id'], fitnessGoal: string) {
+async function upsertDemoUser(name: string, email: string, teamId: InstanceType<typeof Team>['_id'], fitnessGoal: string, role: 'student' | 'teacher' = 'student') {
   const previousUser = await User.findOne({ email }).select('_id team');
   if (previousUser?.team && previousUser.team.toString() !== teamId.toString()) {
     await Team.updateOne({ _id: previousUser.team }, { $pull: { members: previousUser._id } });
   }
+  const profile = role === 'teacher'
+    ? { name, email, fitnessGoal, role }
+    : { name, email, team: teamId, fitnessGoal, role };
   const user = await User.findOneAndUpdate(
     { email },
-    { $set: { name, email, team: teamId, fitnessGoal } },
+    { $set: profile },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
-  await Team.updateOne({ _id: teamId }, { $addToSet: { members: user._id } });
+  if (role === 'student') {
+    await Team.updateOne({ _id: teamId }, { $addToSet: { members: user._id } });
+  }
   return user;
 }
 
@@ -31,6 +36,7 @@ export async function seed() {
     );
     const mona = await upsertDemoUser('Mona', 'mona@example.com', octocats._id, 'endurance');
     const hubot = await upsertDemoUser('Hubot', 'hubot@example.com', robocats._id, 'strength');
+    await upsertDemoUser('Coach Willow', 'teacher@example.com', octocats._id, 'mobility', 'teacher');
 
     const monaRunAt = new Date('2026-01-10T12:00:00.000Z');
     const hubotCycleAt = new Date('2026-01-11T12:00:00.000Z');
